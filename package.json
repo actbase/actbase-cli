@@ -1,0 +1,32 @@
+{
+  "name": "actbase-cli",
+  "version": "0.0.1",
+  "description": "Actbase Command Line Interface",
+  "main": "index.js",
+  "dependencies": {
+    "node-fetch": "^2.3.0"
+  },
+  "devDependencies": {},
+  "bin": {
+    "actbase": "bin/actbase"
+  },
+  "scripts": {
+    "start": "index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Trabricks LLC",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/actbase/actbase-cli.git"
+  },
+  "keywords": [
+    "React",
+    "React-Native",
+    "Actbase"
+  ],
+  "bugs": {
+    "url": "https://github.com/actbase/actbase-cli/issues"
+  },
+  "homepage": "https://github.com/actbase/actbase-cli#readme"
+}

@@ -4,6 +4,7 @@
   "description": "Actbase Command Line Interface",
   "main": "index.js",
   "dependencies": {
+    "commander": "^3.0.2",
     "node-fetch": "^2.3.0"
   },
   "devDependencies": {},

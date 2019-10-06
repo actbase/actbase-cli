@@ -1,6 +1,6 @@
 {
   "name": "actbase-cli",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "Actbase Command Line Interface",
   "author": "Trabricks LLC",
   "license": "MIT",
@@ -16,9 +16,14 @@
   "keywords": [
     "React",
     "React-Native",
-    "Actbase"
+    "Actbase",
+    "CLI",
+    "boilerplate",
+    "i18n",
+    "i18n-generator"
   ],
   "dependencies": {
+    "chalk": "^2.4.2",
     "cli-select": "^1.1.0",
     "commander": "^3.0.2",
     "node-fetch": "^2.3.0"

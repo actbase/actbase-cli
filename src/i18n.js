@@ -65,6 +65,35 @@ const parseCSV = (csv) => {
   return files;
 };
 
+const parseGJson = (json) => {
+
+  let rows = [];
+  let column = [];
+  json?.feed?.entry?.forEach(v => {
+    const cell = v['gs$cell'];
+    if (parseInt(cell.row) === 1) {
+      column[parseInt(cell.col) - 1] = cell.inputValue;
+    }
+    else {
+      if (!rows[parseInt(cell.row) - 2]) rows[parseInt(cell.row) - 2] = [];
+      rows[parseInt(cell.row) - 2][parseInt(cell.col) - 1] = cell.inputValue;
+    }
+  });
+
+  let files = {};
+  for (let i = 1; i < column.length; i++) {
+    files[column[i]] = {};
+  }
+
+  rows.forEach(data => {
+    for (let i = 1; i < column.length; i++) {
+      files[column[i]][data[0]] = data[i] || "$$" + data[0];
+    }
+  });
+
+  return files;
+};
+
 
 const App = async (pkgs, forceReset) => {
 
@@ -139,7 +168,6 @@ const App = async (pkgs, forceReset) => {
     }
 
     if (_config.path.indexOf('pub?output=csv') >= 0) {
-
       const response = await fetch(_config.path);
       const data = await response.text();
 
@@ -152,12 +180,51 @@ const App = async (pkgs, forceReset) => {
 
       for (let i = 0; i < fnames?.length; i++) {
 
-        const text = JSON.stringify(files[fnames[i]], null, 2);
+        const text = JSON.stringify(files[fnames[i]], null, '  ');
         const savePath = `${_config.output}/${fnames[i]}.json`.replace(/\/\//g, "/");
 
         await writeFile(savePath, text);
         console.log(savePath + " 저장 완료!");
       }
+    }
+    else if (_config.path.indexOf('/edit#gid=') >= 0) {
+
+      let key = _config.path.substring(39);
+      key = key.substring(0, key.indexOf("/"));
+
+      const uri = `https://spreadsheets.google.com/feeds/cells/${key}/1/public/full?alt=json`;
+      const response = await fetch(uri);
+      let data = await response.text();
+
+      let json = null;
+      try {
+        json = JSON.parse(data);
+      }
+      catch (e) {
+        console.error('Publish 모드가 아닌 것 같습니다. 확인후 다시 시도해주세요.\n참고 URL: https://www.freecodecamp.org/news/cjn-google-sheets-as-json-endpoint/');
+        process.exit(1);
+      }
+
+      const files = parseGJson(json);
+      const fnames = Object.keys(files);
+
+      if (!fs.existsSync(`${_config.output}`)) {
+        fs.mkdirSync(`${_config.output}`);
+      }
+
+      for (let i = 0; i < fnames?.length; i++) {
+
+        const text = JSON.stringify(files[fnames[i]], null, '  ');
+        const savePath = `${_config.output}/${fnames[i]}.json`.replace(/\/\//g, "/");
+
+        await writeFile(savePath, text);
+        console.log(savePath + " 저장 완료!");
+      }
+
+    }
+    else {
+      console.error('구글 경로가 아닌가봅니다.');
+      process.exit(1);
     }
 
     file.actbase.i18n = _config;

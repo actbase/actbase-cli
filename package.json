@@ -2,30 +2,36 @@
   "name": "actbase-cli",
   "version": "0.0.1",
   "description": "Actbase Command Line Interface",
-  "main": "index.js",
-  "dependencies": {
-    "commander": "^3.0.2",
-    "node-fetch": "^2.3.0"
-  },
-  "devDependencies": {},
+  "author": "Trabricks LLC",
+  "license": "MIT",
+  "main": "dist/index.js",
   "bin": {
     "actbase": "bin/actbase"
   },
   "scripts": {
-    "start": "index.js",
+    "start": "src/index.js",
+    "build": "babel src --out-dir dist --copy-files",
     "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "Trabricks LLC",
-  "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/actbase/actbase-cli.git"
   },
   "keywords": [
     "React",
     "React-Native",
     "Actbase"
   ],
+  "dependencies": {
+    "commander": "^3.0.2",
+    "node-fetch": "^2.3.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.6.2",
+    "@babel/core": "^7.6.2",
+    "@babel/plugin-proposal-object-rest-spread": "^7.6.2",
+    "@babel/preset-env": "^7.6.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/actbase/actbase-cli.git"
+  },
   "bugs": {
     "url": "https://github.com/actbase/actbase-cli/issues"
   },

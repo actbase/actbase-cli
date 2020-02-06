@@ -52,6 +52,26 @@ export const readText = (question) => {
     });
 };
 
+export const getPackageJson = async () => {
+  const file = JSON.parse(await readFile('./package.json'));
+  if (!file?.actbase) {
+    const keys = Object.keys(file?.dependencies);
+    let preset = 'react';
+    if (keys?.indexOf('react-native') >= 0) {
+      preset = 'react-native';
+    }
+    else if (keys?.indexOf('gatsbyjs') >= 0) {
+      preset = 'gatsbyjs';
+    }
+    else if (keys?.indexOf('nextjs') >= 0) {
+      preset = 'nextjs';
+    }
+    file.actbase = { preset };
+  }
+
+  return file;
+}
+
 export default {
     readFile,
     writeFile,

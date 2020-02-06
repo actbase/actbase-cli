@@ -1,9 +1,11 @@
 
-import { readFile, writeFile, execute } from './utils';
+import { readFile, writeFile, execute, getPackageJson } from './utils';
 
 const fs = require('fs');
 const plist = require('plist');
 const program = require('commander');
+const cliSelect = require('cli-select');
+const chalk = require('chalk');
 
 if (!fs.existsSync('./package.json')) {
   console.error('Not found package.json');
@@ -48,7 +50,8 @@ const runIos = async (file) => {
 
   }
   catch(e) {
-    
+    console.error(e);
+    return false;
   }
 
   const podfile = await readFile('./ios/Podfile');
@@ -84,7 +87,8 @@ const runIos = async (file) => {
     }
   }
   catch(e) {
-
+    console.error(e);
+    return false;
   }
    
   let applied = false;
@@ -133,7 +137,8 @@ const runAndroid = async (file) => {
 
   }
   catch(e) {
-    
+    console.error(e);
+    return false;
   }
 
   //
@@ -207,40 +212,107 @@ const runAndroid = async (file) => {
 }
 
 
-
-const App = async (pkgs, forceReset) => {
-
-  console.log("Intialized to Codepush");
-
-  const file = JSON.parse(await readFile('./package.json'));
-
+const install = async (file) => {
+  console.log("Initalized to Codepush");
   if (Object.keys(file.dependencies).indexOf('react-native-code-push') < 0) {
     console.log('install to codepush...');
-    await execute('npm i react-native-code-push');
+    await execute('npm i react-native-code-push && pod install --project-directory=./ios');
   }
 
-  const result1 = await runIos(file);
-  const result2 = await runAndroid(file);
+  const ios = await runIos(file);
+  const and = await runAndroid(file);
 
-  if (result1) {
-    file.scripts['codepush-ios'] = 'rm -rf build_ios && appcenter codepush release-react -a $npm_package_appcenter_ios -d Production --output-dir build_ios';
-  }
-  if (result2) {
-    file.scripts['codepush-and'] = 'rm -rf build_and && appcenter codepush release-react -a $npm_package_appcenter_and -d Production --output-dir build_and';
-  }
+  return { ios, and };
+}
 
-  if (result1 || result2) {
-    console.log(" save to package.json");
+
+const App = async (pkgs, argv) => {
+
+  const file = await getPackageJson();
+  if (!file?.actbase?.codepush) {
+    file.actbase.codepush = await install(file);
+  }
+  else {
+
+    const profile = argv.profile || 'Production';
+
+    let device = argv.device;
+    if (!device) {
+      console.log('Your want Device ?');
+      const selected = (await cliSelect({
+        values: ['All Device', 'iOS', 'Android'],
+        valueRenderer: (value, selected) => {
+          if (selected) {
+            return chalk.underline(value);
+          }
+          return value;
+        },
+      }));
+      device = selected.value.toLowerCase();
+      console.log(`${selected.value} Selected.`);
+    }
+
+    if (!device.startsWith('ios') && !device.startsWith('and') && device.indexOf('all') < 0) {
+      console.log('Not found platforms.');
+      process.exit(1);
+    }
+
+    const version = file.version;
+    let last = parseInt(version.substring(version.lastIndexOf(".") + 1)) + 1;
+
+    file.version = version.substring(0, version.lastIndexOf('.') + 1) + last;
     const text = JSON.stringify(file, null, 2);
     await writeFile("./package.json", text);
+
+    if (!device.startsWith('and')) {
+      // iOS or All 
+      await execute(`rm -rf build_ios`);
+      await execute(`appcenter codepush release-react -a ${file.appcenter_ios} -d ${profile} --output-dir build_ios`);
+
+      if (file.bugsnag) {
+        const cmd = `bugsnag-sourcemaps upload --api-key ${file.bugsnag}
+         --source-map build_ios/CodePush/main.jsbundle.map 
+         --minified-file build_ios/CodePush/main.jsbundle 
+         --minified-url main.jsbundle 
+         --upload-sources 
+         --add-wildcard-prefix 
+         --code-bundle-id ${file.version}`;
+
+        await execute(cmd);
+      }
+
+      await execute(`rm -rf build_ios`);
+    }
+
+    if (!device.startsWith('ios')) {
+      // Android or All 
+      await execute(`rm -rf build_and`);
+      await execute(`appcenter codepush release-react -a ${file.appcenter_and} -d ${profile} --output-dir build_and`)
+
+      if (file.bugsnag) {
+        const cmd = `bugsnag-sourcemaps upload --api-key ${file.bugsnag} 
+          --source-map build_and/CodePush/index.android.bundle.map 
+          --minified-file build_and/CodePush/index.android.bundle 
+          --minified-url index.android.bundle 
+          --upload-sources 
+          --add-wildcard-prefix 
+          --code-bundle-id ${file.version}`
+
+        await execute(cmd);
+      }
+
+      await execute(`rm -rf build_and`);
+    }
   }
 
 };
 
 program
+  .option('-P, --profile <profile>', 'Profile')
+  .option('-D, --device <device>', 'Device (All, iOS, Android)')
   .parse(process.argv);
 
 var pkgs = program.args;
-App(pkgs, (process.argv.indexOf('-r') > 0 || process.argv.indexOf('--reset') >= 0));
+App(pkgs, program.opts());
 
 

@@ -1,5 +1,5 @@
 
-import { readFile, writeFile, readText } from './utils';
+import { writeFile, readText, getPackageJson } from './utils';
 
 const fs = require('fs');
 const fetch = require('node-fetch');
@@ -64,22 +64,7 @@ const parseGJson = (json) => {
 const App = async (pkgs, forceReset) => {
 
   let _config = {};
-
-  const file = JSON.parse(await readFile('./package.json'));
-  if (!file?.actbase) {
-    const keys = Object.keys(file?.dependencies);
-    let preset = 'react';
-    if (keys?.indexOf('react-native') >= 0) {
-      preset = 'react-native';
-    }
-    else if (keys?.indexOf('gatsbyjs') >= 0) {
-      preset = 'gatsbyjs';
-    }
-    else if (keys?.indexOf('nextjs') >= 0) {
-      preset = 'nextjs';
-    }
-    file.actbase = { preset };
-  }
+  const file = getPackageJson();
 
   if (file?.actbase?.i18n) _config = file?.actbase?.i18n;
   if (forceReset) _config = {};

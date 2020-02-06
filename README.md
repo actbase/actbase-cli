@@ -54,3 +54,8 @@ appcenter의 코드푸시를 자동으로 설정해 줍니다.
 ```shell script
 $ actbase codepush
 ```
+
+이후 셋팅이 완료되면 간단하게 
+npm run codepush-ios / npm run codepush-and
+를 통해 코드푸시 처리를 할 수 있습니다.
+

@@ -29,3 +29,28 @@ https://www.freecodecamp.org/news/cjn-google-sheets-as-json-endpoint/
 ```shell script
 $ actbase i18n
 ```
+
+
+
+----
+
+
+#### 코드푸시 반영하기
+appcenter의 코드푸시를 자동으로 설정해 줍니다.
+
+우선 package.json에 설정이 되어있어야 합니다.
+
+```json
+{
+  "name": "testname",
+  "version": "0.0.1",
+  "private": true,
+  "appcenter_ios": "[ios appcenter key (ex : org/name) ]",
+  "appcenter_and": "[android appcenter key (ex : org/name) ]",
+}
+```
+
+
+```shell script
+$ actbase codepush
+```

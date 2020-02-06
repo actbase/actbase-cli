@@ -1,7 +1,9 @@
+
+import { readFile, writeFile, readText } from './utils';
+
 const fs = require('fs');
 const fetch = require('node-fetch');
 const program = require('commander');
-const readline = require('readline');
 const cliSelect = require('cli-select');
 const chalk = require('chalk');
 
@@ -9,42 +11,6 @@ if (!fs.existsSync('./package.json')) {
   console.error('Not found package.json');
   process.exit(1);
 }
-
-const readFile = (path) => {
-  return new Promise((resolve, reject) => {
-    fs.readFile(path, 'utf8', (err, data) => {
-      if (err) {
-        reject(err);
-      }
-      else {
-        resolve(data);
-      }
-    })
-  });
-};
-
-const writeFile = (path, content) => {
-  return new Promise((resolve, reject) => {
-    fs.writeFile(path, content, 'utf8', (err, data) => {
-      if (err) {
-        reject(err);
-      }
-      else {
-        resolve(data);
-      }
-    })
-  });
-};
-
-const readText = (question) => {
-  return new Promise((resolve, reject) => {
-    const r = readline.createInterface({ input: process.stdin, output: process.stdout });
-    r.question(question, (data) => {
-      resolve(data);
-      r.close();
-    });
-  });
-};
 
 const parseCSV = (csv) => {
   const rows = csv.replace(/\r/g, '').split("\n");

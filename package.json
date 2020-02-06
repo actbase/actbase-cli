@@ -1,6 +1,6 @@
 {
   "name": "actbase-cli",
-  "version": "0.0.3",
+  "version": "0.0.7",
   "description": "Actbase Command Line Interface",
   "author": "Trabricks LLC",
   "license": "MIT",
@@ -26,7 +26,8 @@
     "chalk": "^2.4.2",
     "cli-select": "^1.1.0",
     "commander": "^3.0.2",
-    "node-fetch": "^2.3.0"
+    "node-fetch": "^2.3.0",
+    "plist": "^3.0.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.6.2",

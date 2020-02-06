@@ -11,7 +11,7 @@ $ npm i -g actbase-cli
 ---
 
 
-#### 프로젝트 시작하기
+#### 프로젝트 시작하기 (공통)
 ```shell script
 $ actbase init [Project name]
 ```
@@ -19,7 +19,7 @@ $ actbase init [Project name]
 ----
 
 
-#### 언어팩 생성하기
+#### 언어팩 생성하기 (공통)
 언어팩은 xls, csv, Google Spreadsheet 를 지원합니다.
 
 Google Spreadsheet를 사용하려면 하단의 URL을 참고하세요.
@@ -35,7 +35,7 @@ $ actbase i18n
 ----
 
 
-#### 코드푸시 반영하기
+#### 코드푸시 반영하기 (React-Native Only)
 appcenter의 코드푸시를 자동으로 설정해 줍니다.
 
 우선 package.json에 설정이 되어있어야 합니다.

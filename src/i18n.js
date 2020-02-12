@@ -59,7 +59,7 @@ const parseGJson = json => {
 
 const App = async (pkgs, forceReset) => {
   let _config = {};
-  const file = getPackageJson();
+  const file = await getPackageJson();
 
   if (file?.actbase?.i18n) _config = file?.actbase?.i18n;
   if (forceReset) _config = {};

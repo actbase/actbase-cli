@@ -273,6 +273,8 @@ const App = async (pkgs, argv) => {
   const file = await getPackageJson();
   if (!file?.actbase?.codepush) {
     file.actbase.codepush = await install(file);
+    const text = JSON.stringify(file, null, 2);
+    await writeFile('./package.json', text);
   } else {
     const profile = argv.profile || 'Production';
 

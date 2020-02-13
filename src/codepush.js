@@ -295,21 +295,22 @@ const App = async (pkgs, argv) => {
 
   if (noKeyAnd || noKeyIos) {
     const orgData = await select('Select the AppCenter Organization.', orgs);
-    if (noKeyAnd) {
-      const keyData = await select(
-        'Select the AppCenter key for Android.',
-        keys.filter(v => v.startsWith(orgData.value)),
-      );
-      file.appcenter_and = keyData;
-      file.actbase.codepush = null;
-    }
 
     if (noKeyIos) {
       const keyData = await select(
         'Select the AppCenter key for iOS.',
         keys.filter(v => v.startsWith(orgData.value)),
       );
-      file.appcenter_ios = keyData;
+      file.appcenter_ios = keyData.value;
+      file.actbase.codepush = null;
+    }
+
+    if (noKeyAnd) {
+      const keyData = await select(
+        'Select the AppCenter key for Android.',
+        keys.filter(v => v.startsWith(orgData.value)),
+      );
+      file.appcenter_and = keyData.value;
       file.actbase.codepush = null;
     }
   }

@@ -1,8 +1,7 @@
 const fs = require('fs');
 const readline = require('readline');
 const { exec } = require('child_process');
-const cliSelect = require('cli-select');
-const chalk = require('chalk');
+const inquirer = require('inquirer');
 
 export const execute = cmd => {
   return new Promise((resolve, reject) => {
@@ -40,17 +39,15 @@ export const writeFile = (path, content) => {
   });
 };
 
-export const readText = question => {
-  return new Promise((resolve, reject) => {
-    const r = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-    r.question(question, data => {
-      r.close();
-      resolve(data);
-    });
-  });
+export const readText = async message => {
+  const answers = await inquirer.prompt([
+    {
+      type: 'input',
+      name: 'input',
+      message,
+    },
+  ]);
+  return answers.input;
 };
 
 export const getPackageJson = async () => {
@@ -71,20 +68,25 @@ export const getPackageJson = async () => {
   return file;
 };
 
-export const select = async (message, values) => {
-  console.log(message);
-  const result = await cliSelect({
-    cleanup: false,
-    values,
-    valueRenderer: (value, selected) => {
-      if (selected) {
-        return chalk.underline(value);
-      }
-      return value;
-    },
-  });
-  console.log(' ==> ' + result.value + '\n');
-  return result;
+export const select = async (message, choices) => {
+  try {
+    const answers = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'input',
+        message,
+        choices,
+      },
+    ]);
+
+    const result = {
+      value: answers.input,
+      id: choices.indexOf(answers.input),
+    };
+    return result;
+  } catch (e) {
+    process.exit(1);
+  }
 };
 
 export default {

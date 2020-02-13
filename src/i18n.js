@@ -70,7 +70,6 @@ const App = async (pkgs, forceReset) => {
       console.log('Folder is required');
       process.exit(1);
     }
-    console.log(' ');
     _config.output = output;
   }
 
@@ -88,7 +87,6 @@ const App = async (pkgs, forceReset) => {
       console.log('Path is required');
       process.exit(1);
     }
-    console.log(' ');
     _config.path = path;
   }
 
@@ -127,7 +125,7 @@ const App = async (pkgs, forceReset) => {
         );
 
         await writeFile(savePath, text);
-        console.log(savePath + ' 저장 완료!');
+        console.log(` ==> ${savePath} 저장 완료!`);
       }
     } else if (_config.path.indexOf('/edit#gid=') >= 0) {
       let key = _config.path.substring(39);

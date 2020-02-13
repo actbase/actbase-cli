@@ -1,4 +1,5 @@
 import { readFile, writeFile, execute, getPackageJson, select } from './utils';
+import { trim } from 'lodash';
 
 const fs = require('fs');
 const plist = require('plist');
@@ -271,7 +272,49 @@ const install = async file => {
 
 const App = async (pkgs, argv) => {
   const file = await getPackageJson();
-  if (!file?.actbase?.codepush) {
+
+  console.log('Waiting for AppCenter response...');
+
+  const cmd = `appcenter apps list`;
+  const { stdout } = await execute(cmd);
+  const orgs = [];
+  const keys = stdout
+    .split('\n')
+    .filter(v => v)
+    .map(v => {
+      const str = trim(v);
+      const org = str.substr(0, str.indexOf('/'));
+      if (orgs.indexOf(org) < 0) orgs.push(org);
+      return str;
+    });
+
+  const noKeyAnd =
+    !file?.appcenter_and || keys.indexOf(file?.appcenter_and) < 0;
+  const noKeyIos =
+    !file?.appcenter_ios || keys.indexOf(file?.appcenter_ios) < 0;
+
+  if (noKeyAnd || noKeyIos) {
+    const orgData = await select('Select the AppCenter Organization.', orgs);
+    if (noKeyAnd) {
+      const keyData = await select(
+        'Select the AppCenter key for Android.',
+        keys.filter(v => v.startsWith(orgData.value)),
+      );
+      file.appcenter_and = keyData;
+      file.actbase.codepush = null;
+    }
+
+    if (noKeyIos) {
+      const keyData = await select(
+        'Select the AppCenter key for iOS.',
+        keys.filter(v => v.startsWith(orgData.value)),
+      );
+      file.appcenter_ios = keyData;
+      file.actbase.codepush = null;
+    }
+  }
+
+  if (!file?.actbase?.codepush || argv.reset) {
     file.actbase.codepush = await install(file);
     const text = JSON.stringify(file, null, 2);
     await writeFile('./package.json', text);
@@ -280,11 +323,10 @@ const App = async (pkgs, argv) => {
 
     let device = argv.device;
     if (!device) {
-      const selected = await select('On which platform do you want to deploy?', [
-        'All Device',
-        'iOS',
-        'Android',
-      ]);
+      const selected = await select(
+        'On which platform do you want to deploy?',
+        ['All Device', 'iOS', 'Android'],
+      );
       device = selected.value.toLowerCase();
     }
 
@@ -351,6 +393,7 @@ const App = async (pkgs, argv) => {
 };
 
 program
+  .option('-r, --reset', 'reset latest file.')
   .option('-P, --profile <profile>', 'Profile')
   .option('-D, --device <device>', 'Device (All, iOS, Android)')
   .parse(process.argv);

@@ -1,4 +1,4 @@
-import { readFile, writeFile, execute, getPackageJson } from './utils';
+import { readFile, writeFile, execute, getPackageJson, select } from './utils';
 
 const fs = require('fs');
 const plist = require('plist');
@@ -280,18 +280,12 @@ const App = async (pkgs, argv) => {
 
     let device = argv.device;
     if (!device) {
-      console.log('Your want Device ?');
-      const selected = await cliSelect({
-        values: ['All Device', 'iOS', 'Android'],
-        valueRenderer: (value, selected) => {
-          if (selected) {
-            return chalk.underline(value);
-          }
-          return value;
-        },
-      });
+      const selected = await select('On which platform do you want to deploy?', [
+        'All Device',
+        'iOS',
+        'Android',
+      ]);
       device = selected.value.toLowerCase();
-      console.log(`${selected.value} Selected.`);
     }
 
     if (

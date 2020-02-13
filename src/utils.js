@@ -1,6 +1,8 @@
 const fs = require('fs');
 const readline = require('readline');
 const { exec } = require('child_process');
+const cliSelect = require('cli-select');
+const chalk = require('chalk');
 
 export const execute = cmd => {
   return new Promise((resolve, reject) => {
@@ -45,8 +47,8 @@ export const readText = question => {
       output: process.stdout,
     });
     r.question(question, data => {
-      resolve(data);
       r.close();
+      resolve(data);
     });
   });
 };
@@ -67,6 +69,22 @@ export const getPackageJson = async () => {
   }
 
   return file;
+};
+
+export const select = async (message, values) => {
+  console.log(message);
+  const result = await cliSelect({
+    cleanup: false,
+    values,
+    valueRenderer: (value, selected) => {
+      if (selected) {
+        return chalk.underline(value);
+      }
+      return value;
+    },
+  });
+  console.log(' ==> ' + result.value + '\n');
+  return result;
 };
 
 export default {

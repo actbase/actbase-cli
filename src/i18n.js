@@ -1,10 +1,8 @@
-import { writeFile, readText, getPackageJson } from './utils';
+import { writeFile, readText, getPackageJson, select } from './utils';
 
 const fs = require('fs');
 const fetch = require('node-fetch');
 const program = require('commander');
-const cliSelect = require('cli-select');
-const chalk = require('chalk');
 
 if (!fs.existsSync('./package.json')) {
   console.error('Not found package.json');
@@ -64,36 +62,33 @@ const App = async (pkgs, forceReset) => {
   if (file?.actbase?.i18n) _config = file?.actbase?.i18n;
   if (forceReset) _config = {};
 
-  if (_config?.preset === undefined) {
-    console.log('언어팩 생성준비를 시작합니다.');
-    const value = await cliSelect({
-      values: ['Google Docs', 'Spreadsheet File (xlsx)'],
-      valueRenderer: (value, selected) => {
-        if (selected) {
-          return chalk.underline(value);
-        }
-        return value;
-      },
-    });
-    _config.preset = value?.id;
-    console.log(value?.value + ' Selected!');
-  }
-
   if (!_config?.output) {
-    const output = await readText('언어팩 생성할 경로를 입력하세요 : ');
+    const output = await readText(
+      'Enter the folder where create the language json : ',
+    );
     if (!output) {
-      console.error('출력 항목은 필수입니다.');
+      console.log('Folder is required');
       process.exit(1);
     }
+    console.log(' ');
     _config.output = output;
   }
 
+  if (_config?.preset === undefined) {
+    const value = await select('What kind of file do you want?', [
+      'Google Docs',
+      'Spreadsheet File (xlsx)',
+    ]);
+    _config.preset = value?.id;
+  }
+
   if (!_config?.path) {
-    const path = await readText('해당 소스파일(XLS or CSV)을 입력하세요 : ');
+    const path = await readText('Path : ');
     if (!path) {
-      console.error('경로 항목은 필수입니다.');
+      console.log('Path is required');
       process.exit(1);
     }
+    console.log(' ');
     _config.path = path;
   }
 
@@ -101,12 +96,14 @@ const App = async (pkgs, forceReset) => {
     // File Parse..
 
     if (!fs.existsSync(_config.path)) {
+      console.log(' ');
       console.error('파일을 찾을수가 없어요.');
       process.exit(1);
     }
   } else if (_config.preset === 0) {
     // Google Docs..
     if (_config.path.indexOf('https://docs.google.com/spreadsheets/d/') !== 0) {
+      console.log(' ');
       console.error('구글 경로가 아닌가봅니다.');
       process.exit(1);
     }

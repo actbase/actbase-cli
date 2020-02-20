@@ -1,4 +1,4 @@
-import { writeFile, readText, getPackageJson, select } from './utils';
+import { writeFile, readText, getPackageJson, select, execute } from './utils';
 
 const fs = require('fs');
 const fetch = require('node-fetch');
@@ -28,13 +28,15 @@ const parseCSV = csv => {
   return files;
 };
 
-const parseGJson = json => {
+const parseGJson = (json, flag) => {
+  const registNames = { FLAG: -1, CODE: -1 };
+
   let rows = [];
-  let column = [];
+  let columns = [];
   json?.feed?.entry?.forEach(v => {
     const cell = v['gs$cell'];
     if (parseInt(cell.row) === 1) {
-      column[parseInt(cell.col) - 1] = cell.inputValue;
+      columns[parseInt(cell.col) - 1] = cell.inputValue;
     } else {
       if (!rows[parseInt(cell.row) - 2]) rows[parseInt(cell.row) - 2] = [];
       rows[parseInt(cell.row) - 2][parseInt(cell.col) - 1] = cell.inputValue;
@@ -42,13 +44,26 @@ const parseGJson = json => {
   });
 
   let files = {};
-  for (let i = 1; i < column.length; i++) {
-    files[column[i]] = {};
-  }
+  columns
+    .filter((v, index) => {
+      const isLanguage = Object.keys(registNames).indexOf(v.toUpperCase()) < 0;
+      registNames[v.toUpperCase()] = index;
+      return isLanguage;
+    })
+    .forEach(column => {
+      files[column] = {};
+    });
 
   rows.forEach(data => {
-    for (let i = 1; i < column.length; i++) {
-      files[column[i]][data[0]] = data[i] || '$$' + data[0];
+    for (const key in files) {
+      const i = registNames[key.toUpperCase()];
+      const code = data[registNames['CODE']];
+      if (registNames['FLAG'] >= 0 && flag) {
+        const _flag = data[registNames['FLAG']];
+        if (_flag && flag !== _flag) continue;
+      }
+      if (!code) continue;
+      files[key][code] = data[i] || '$$' + code;
     }
   });
 
@@ -79,6 +94,13 @@ const App = async (pkgs, forceReset) => {
       'Spreadsheet File (xlsx)',
     ]);
     _config.preset = value?.id;
+  }
+
+  if (_config?.flag === undefined) {
+    const flag = await readText(
+      '원하는 FLAG값을 입력해주세요.  : ',
+    );
+    _config.flag = flag;
   }
 
   if (!_config?.path) {
@@ -145,7 +167,7 @@ const App = async (pkgs, forceReset) => {
         process.exit(1);
       }
 
-      const files = parseGJson(json);
+      const files = parseGJson(json, _config.flag);
       const fnames = Object.keys(files);
 
       if (!fs.existsSync(`${_config.output}`)) {
@@ -170,6 +192,8 @@ const App = async (pkgs, forceReset) => {
     file.actbase.i18n = _config;
     const text = JSON.stringify(file, null, 2);
     await writeFile('./package.json', text);
+
+    await execute("git add " + _config.output);
   }
 };
 

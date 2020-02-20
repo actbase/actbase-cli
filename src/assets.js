@@ -1,4 +1,4 @@
-import { writeFile, readText, getPackageJson } from './utils';
+import { writeFile, readText, getPackageJson, execute } from './utils';
 
 const fs = require('fs');
 const program = require('commander');
@@ -89,6 +89,9 @@ const App = async (pkgs, forceReset) => {
   console.log('Usage: ');
   console.log(`  import Assets from "${_config?.output}"`);
   console.log('  <Image source={Assets.imagename} />');
+
+  await execute("git add " + _config.output);
+
 };
 
 program.option('-r, --reset', 'reset latest file.').parse(process.argv);

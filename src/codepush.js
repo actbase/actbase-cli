@@ -1,11 +1,10 @@
-import { readFile, writeFile, execute, getPackageJson, select } from './utils';
+import { execute, getPackageJson, readFile, select, writeFile } from './utils';
 import { trim } from 'lodash';
 
 const fs = require('fs');
 const plist = require('plist');
 const program = require('commander');
-const cliSelect = require('cli-select');
-const chalk = require('chalk');
+const open = require('open');
 
 if (!fs.existsSync('./package.json')) {
   console.error('Not found package.json');
@@ -42,6 +41,10 @@ const runIos = async file => {
     codepushKey = getCodePushKey(stdout, 'Production');
     if (!codepushKey) {
       console.log('[ios] ==> First initalize to appcenter.ms');
+      const s = file.appcenter_ios.split('/');
+      open(
+        `https://appcenter.ms/orgs/${s[0]}/apps/${s[1]}/distribute/code-push`,
+      );
       return false;
     }
   } catch (e) {
@@ -134,6 +137,10 @@ const runAndroid = async file => {
     codepushKey = getCodePushKey(stdout, 'Production');
     if (!codepushKey) {
       console.log('[and] ==> First initalize to appcenter.ms');
+      const s = file.appcenter_and.split('/');
+      open(
+        `https://appcenter.ms/orgs/${s[0]}/apps/${s[1]}/distribute/code-push`,
+      );
       return false;
     }
   } catch (e) {
@@ -293,25 +300,52 @@ const App = async (pkgs, argv) => {
   const noKeyIos =
     !file?.appcenter_ios || keys.indexOf(file?.appcenter_ios) < 0;
 
+  const etcOpt = {
+    name: 'Project not found! (Go to AppCenter)',
+    value: '@@project_not_founded',
+  };
+
   if (noKeyAnd || noKeyIos) {
-    const orgData = await select('Select the AppCenter Organization.', orgs);
+    const orgData = await select(
+      'Select the AppCenter Organization.',
+      orgs.concat([etcOpt]),
+    );
 
-    if (noKeyIos) {
-      const keyData = await select(
-        'Select the AppCenter key for iOS.',
-        keys.filter(v => v.startsWith(orgData.value)),
-      );
-      file.appcenter_ios = keyData.value;
-      file.actbase.codepush = null;
-    }
+    if (orgData.value === etcOpt.value) {
+      console.log('Move to Appcenter ');
+      open('https://appcenter.ms/apps');
+      process.exit(0);
+    } else {
+      if (noKeyIos) {
+        const keyData = await select(
+          'Select the AppCenter key for iOS.',
+          keys.filter(v => v.startsWith(orgData.value)).concat([etcOpt]),
+        );
+        if (keyData.value === etcOpt.value) {
+          console.log('Move to Appcenter ');
+          open(`https://appcenter.ms/orgs/${orgData.value}/applications`);
+          process.exit(0);
+        }
 
-    if (noKeyAnd) {
-      const keyData = await select(
-        'Select the AppCenter key for Android.',
-        keys.filter(v => v.startsWith(orgData.value)),
-      );
-      file.appcenter_and = keyData.value;
-      file.actbase.codepush = null;
+        file.appcenter_ios = keyData.value;
+        file.actbase.codepush = null;
+      }
+
+      if (noKeyAnd) {
+        const keyData = await select(
+          'Select the AppCenter key for Android.',
+          keys.filter(v => v.startsWith(orgData.value)).concat([etcOpt]),
+        );
+
+        if (keyData.value === etcOpt.value) {
+          console.log('Move to Appcenter ');
+          open(`https://appcenter.ms/orgs/${orgData.value}/applications`);
+          process.exit(0);
+        }
+
+        file.appcenter_and = keyData.value;
+        file.actbase.codepush = null;
+      }
     }
   }
 

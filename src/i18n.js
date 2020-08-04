@@ -74,7 +74,7 @@ const App = async (pkgs, forceReset) => {
   let _config = {};
   const file = await getPackageJson();
 
-  if (file?.actbase?.i18n) _config = file?.actbase?.i18n;
+  if (file?.i18n) _config = file?.i18n;
   if (forceReset) _config = {};
 
   if (!_config?.output) {
@@ -97,9 +97,7 @@ const App = async (pkgs, forceReset) => {
   }
 
   if (_config?.flag === undefined) {
-    const flag = await readText(
-      '원하는 FLAG값을 입력해주세요.  : ',
-    );
+    const flag = await readText('원하는 FLAG값을 입력해주세요.  : ');
     _config.flag = flag;
   }
 
@@ -189,11 +187,11 @@ const App = async (pkgs, forceReset) => {
       process.exit(1);
     }
 
-    file.actbase.i18n = _config;
+    file.i18n = _config;
     const text = JSON.stringify(file, null, 2);
-    await writeFile('./package.json', text);
+    await writeFile('./actbase.json', text);
 
-    await execute("git add " + _config.output);
+    await execute('git add ' + _config.output);
   }
 };
 

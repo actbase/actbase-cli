@@ -25,9 +25,26 @@ const getCodePushKey = (stdout, key) => {
   return str;
 };
 
-const runIos = async file => {
-  if (!file.appcenter_ios) {
-    console.warn('[ios] ==> Not found Key [ appcenter_ios ] ');
+const getIosName = async () => {
+  const podfile = await readFile('./ios/Podfile');
+  const podfileRows = podfile.split('\n');
+
+  let name = '';
+  for (let i = 0; i < podfileRows.length; i++) {
+    if (podfileRows[i].startsWith("target '")) {
+      name = podfileRows[i];
+      name = name.substring(name.indexOf("'") + 1);
+      name = name.substring(0, name.indexOf("'"));
+      break;
+    }
+  }
+
+  return name;
+};
+
+const runIos = async center_key => {
+  if (!center_key) {
+    console.warn('[ios] ==> Not found Key ');
     return false;
   }
 
@@ -35,13 +52,13 @@ const runIos = async file => {
   try {
     console.log('[ios] Get a codepush key...');
 
-    const cmd = `appcenter codepush deployment list -a ${file.appcenter_ios} --displayKeys`;
+    const cmd = `appcenter codepush deployment list -a ${center_key} --displayKeys`;
     const { stdout } = await execute(cmd);
 
     codepushKey = getCodePushKey(stdout, 'Production');
     if (!codepushKey) {
       console.log('[ios] ==> First initalize to appcenter.ms');
-      const s = file.appcenter_ios.split('/');
+      const s = center_key.split('/');
       open(
         `https://appcenter.ms/orgs/${s[0]}/apps/${s[1]}/distribute/code-push`,
       );
@@ -121,8 +138,8 @@ const runIos = async file => {
   return true;
 };
 
-const runAndroid = async file => {
-  if (!file.appcenter_and) {
+const runAndroid = async center_key => {
+  if (!center_key) {
     console.warn('[and] ==> Not found Key [ appcenter_and ] ');
     return false;
   }
@@ -131,13 +148,13 @@ const runAndroid = async file => {
   try {
     console.log('[and] Get a codepush key...');
 
-    const cmd = `appcenter codepush deployment list -a ${file.appcenter_and} --displayKeys`;
+    const cmd = `appcenter codepush deployment list -a ${center_key} --displayKeys`;
     const { stdout } = await execute(cmd);
 
     codepushKey = getCodePushKey(stdout, 'Production');
     if (!codepushKey) {
       console.log('[and] ==> First initalize to appcenter.ms');
-      const s = file.appcenter_and.split('/');
+      const s = center_key.split('/');
       open(
         `https://appcenter.ms/orgs/${s[0]}/apps/${s[1]}/distribute/code-push`,
       );
@@ -264,21 +281,22 @@ const runAndroid = async file => {
 
 const install = async file => {
   console.log('Initalized to Codepush');
-  if (Object.keys(file.dependencies).indexOf('react-native-code-push') < 0) {
-    console.log('install to codepush...');
-    await execute(
-      'npm i react-native-code-push && pod install --project-directory=./ios',
-    );
-  }
-
-  const ios = await runIos(file);
-  const and = await runAndroid(file);
-
-  return { ios, and };
+  await runIos(file.codepush.ios);
+  await runAndroid(file.codepush.and);
+  return file.codepush;
 };
 
 const App = async (pkgs, argv) => {
-  const file = await getPackageJson();
+  let pkgVer = null;
+  const file = await getPackageJson(async pkg => {
+    pkgVer = pkg.version;
+    if (Object.keys(pkg.dependencies).indexOf('react-native-code-push') < 0) {
+      console.log('install to codepush...');
+      await execute(
+        'npm i react-native-code-push && pod install --project-directory=./ios',
+      );
+    }
+  });
 
   console.log('Waiting for AppCenter response...');
 
@@ -296,9 +314,9 @@ const App = async (pkgs, argv) => {
     });
 
   const noKeyAnd =
-    !file?.appcenter_and || keys.indexOf(file?.appcenter_and) < 0;
+    !file?.codepush?.and || keys.indexOf(file?.codepush?.and) < 0;
   const noKeyIos =
-    !file?.appcenter_ios || keys.indexOf(file?.appcenter_ios) < 0;
+    !file?.codepush?.ios || keys.indexOf(file?.codepush?.ios) < 0;
 
   const etcOpt = {
     name: 'Project not found! (Go to AppCenter)',
@@ -327,8 +345,8 @@ const App = async (pkgs, argv) => {
           process.exit(0);
         }
 
-        file.appcenter_ios = keyData.value;
-        file.actbase.codepush = null;
+        if (!file.codepush) file.codepush = {};
+        file.codepush.ios = keyData.value;
       }
 
       if (noKeyAnd) {
@@ -343,16 +361,16 @@ const App = async (pkgs, argv) => {
           process.exit(0);
         }
 
-        file.appcenter_and = keyData.value;
-        file.actbase.codepush = null;
+        if (!file.codepush) file.codepush = {};
+        file.codepush.and = keyData.value;
       }
     }
   }
 
-  if (!file?.actbase?.codepush || argv.reset) {
-    file.actbase.codepush = await install(file);
+  if (!file?.codepush || argv.reset) {
+    file.codepush = await install(file);
     const text = JSON.stringify(file, null, 2);
-    await writeFile('./package.json', text);
+    await writeFile('./actbase.json', text);
   } else {
     const profile = argv.profile || 'Production';
 
@@ -374,55 +392,87 @@ const App = async (pkgs, argv) => {
       process.exit(1);
     }
 
-    const version = file.version;
-    let last = parseInt(version.substring(version.lastIndexOf('.') + 1)) + 1;
-
-    file.version = version.substring(0, version.lastIndexOf('.') + 1) + last;
+    file.version++;
     const text = JSON.stringify(file, null, 2);
-    await writeFile('./package.json', text);
+    await writeFile('./actbase.json', text);
 
-    if (!device.startsWith('and')) {
-      // iOS or All
-      await execute(`rm -rf build_ios`);
-      await execute(
-        `appcenter codepush release-react -a ${file.appcenter_ios} -d ${profile} --output-dir build_ios`,
-      );
+    if (device.startsWith('ios') || device.startsWith('all')) {
+      try {
+        // iOS or All
+        const name = await getIosName();
+        const appPlist = plist.parse(
+          await readFile(`./ios/${name}/Info.plist`),
+        );
 
-      if (file.bugsnag) {
-        const cmd = `bugsnag-sourcemaps upload --api-key ${file.bugsnag}
-         --source-map build_ios/CodePush/main.jsbundle.map 
-         --minified-file build_ios/CodePush/main.jsbundle 
-         --minified-url main.jsbundle 
-         --upload-sources 
-         --add-wildcard-prefix 
-         --code-bundle-id ${file.version}`;
+        let args = '';
+        if (
+          appPlist.CFBundleShortVersionString?.indexOf('MARKETING_VERSION') > 0
+        ) {
+          const f = await readFile(`./ios/${name}.xcodeproj/project.pbxproj`);
+          const vs = f
+            .split('\n')
+            .filter(v => v.indexOf('MARKETING_VERSION') >= 0);
+          if (vs.length > 0) {
+            let s = vs[vs.length - 1];
+            s = s.substring(s.indexOf('=') + 2);
+            s = s.substring(0, s.length - 1);
+            args = ` --target-binary-version ${s} `;
+          }
+        }
 
-        await execute(cmd);
+        console.log('Create a iOS.');
+        await execute(`rm -rf build_ios`);
+        await execute(
+          `appcenter codepush release-react -a ${file.codepush.ios} -d ${profile} ${args} --output-dir build_ios`,
+        );
+
+        if (file.bugsnag) {
+          const cmd = `bugsnag-sourcemaps upload --api-key ${file.bugsnag}
+         --source-map build_ios/CodePush/main.jsbundle.map
+         --minified-file build_ios/CodePush/main.jsbundle
+         --minified-url main.jsbundle
+         --upload-sources
+         --add-wildcard-prefix
+         --code-bundle-id ${pkgVer}-${file.version}`;
+
+          await execute(cmd);
+        }
+
+        await execute(`rm -rf build_ios`);
+        console.log('Finish a iOS.');
+      } catch (e) {
+        console.log('Failure a iOS.');
+        console.log(e);
       }
-
-      await execute(`rm -rf build_ios`);
     }
 
-    if (!device.startsWith('ios')) {
-      // Android or All
-      await execute(`rm -rf build_and`);
-      await execute(
-        `appcenter codepush release-react -a ${file.appcenter_and} -d ${profile} --output-dir build_and`,
-      );
+    if (device.startsWith('and') || device.startsWith('all')) {
+      try {
+        // Android or All
+        console.log('Create a Android.');
+        await execute(`rm -rf build_and`);
+        await execute(
+          `appcenter codepush release-react -a ${file.codepush.and} -d ${profile} --output-dir build_and`,
+        );
 
-      if (file.bugsnag) {
-        const cmd = `bugsnag-sourcemaps upload --api-key ${file.bugsnag} 
-          --source-map build_and/CodePush/index.android.bundle.map 
-          --minified-file build_and/CodePush/index.android.bundle 
-          --minified-url index.android.bundle 
-          --upload-sources 
-          --add-wildcard-prefix 
-          --code-bundle-id ${file.version}`;
+        if (file.bugsnag) {
+          const cmd = `bugsnag-sourcemaps upload --api-key ${file.bugsnag}
+          --source-map build_and/CodePush/index.android.bundle.map
+          --minified-file build_and/CodePush/index.android.bundle
+          --minified-url index.android.bundle
+          --upload-sources
+          --add-wildcard-prefix
+          --code-bundle-id ${pkgVer}-${file.version}`;
 
-        await execute(cmd);
+          await execute(cmd);
+        }
+
+        await execute(`rm -rf build_and`);
+        console.log('Finish a Android.');
+      } catch (e) {
+        console.log('Failure a Android.');
+        console.log(e);
       }
-
-      await execute(`rm -rf build_and`);
     }
   }
 };

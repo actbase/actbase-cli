@@ -5,8 +5,9 @@ const inquirer = require('inquirer');
 
 export const execute = cmd => {
   return new Promise((resolve, reject) => {
-    exec(cmd, (err, stdout, stderr) => {
+    exec(cmd?.replace(/\n/g, ' '), (err, stdout, stderr) => {
       if (err) {
+        console.log(err);
         reject(err);
       } else {
         resolve({ stdout, stderr });
@@ -50,10 +51,13 @@ export const readText = async message => {
   return answers.input;
 };
 
-export const getPackageJson = async () => {
-  const file = JSON.parse(await readFile('./package.json'));
-  if (!file?.actbase) {
-    const keys = Object.keys(file?.dependencies);
+export const getPackageJson = async fn => {
+  const pfile = JSON.parse(await readFile('./package.json'));
+  await fn?.(pfile);
+
+  let cfile = {};
+  if (!fs.existsSync('./actbase.json')) {
+    const keys = Object.keys(pfile?.dependencies);
     let preset = 'react';
     if (keys?.indexOf('react-native') >= 0) {
       preset = 'react-native';
@@ -62,10 +66,14 @@ export const getPackageJson = async () => {
     } else if (keys?.indexOf('nextjs') >= 0) {
       preset = 'nextjs';
     }
-    file.actbase = { preset };
-  }
+    const text = JSON.stringify({ preset }, null, 2);
+    await writeFile('./actbase.json', text);
 
-  return file;
+    cfile.preset = preset;
+  } else {
+    cfile = JSON.parse(await readFile('./actbase.json'));
+  }
+  return cfile;
 };
 
 export const select = async (message, choices) => {

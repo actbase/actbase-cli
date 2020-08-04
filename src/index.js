@@ -9,4 +9,5 @@ program
   .command('i18n', 'init Language Pack')
   .command('assets', 'apply to assets')
   .command('codepush', 'apply to code-push')
+  .command('bugsnag', 'apply to bugsnag')
   .parse(process.argv);

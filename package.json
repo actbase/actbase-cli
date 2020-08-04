@@ -1,6 +1,6 @@
 {
   "name": "actbase-cli",
-  "version": "0.0.26",
+  "version": "0.1.0",
   "description": "Actbase Command Line Interface",
   "author": "Trabricks LLC",
   "license": "MIT",

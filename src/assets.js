@@ -34,7 +34,7 @@ const App = async (pkgs, forceReset) => {
   let _config = {};
   const file = await getPackageJson();
 
-  if (file?.actbase?.assets) _config = file?.actbase?.assets;
+  if (file?.assets) _config = file?.assets;
   if (forceReset) _config = {};
 
   if (!_config?.source) {
@@ -51,9 +51,9 @@ const App = async (pkgs, forceReset) => {
 
     _config.source = source;
 
-    file.actbase.assets = _config;
+    file.assets = _config;
     const text = JSON.stringify(file, null, 2);
-    await writeFile('./package.json', text);
+    await writeFile('./actbase.json', text);
   }
 
   if (!_config?.output) {
@@ -71,9 +71,9 @@ const App = async (pkgs, forceReset) => {
     }
     _config.output = output;
 
-    file.actbase.assets = _config;
+    file.assets = _config;
     const text = JSON.stringify(file, null, 2);
-    await writeFile('./package.json', text);
+    await writeFile('./actbase.json', text);
   }
 
   const files = await scanFiles(_config?.source);
@@ -81,7 +81,7 @@ const App = async (pkgs, forceReset) => {
   let response = JSON.stringify(files, null, 2);
   response =
     'export default ' +
-    response.replace(/\"@([^\"]*)"/g, "require('$1')").replace(/"/g, "'");
+    response.replace(/\"@([^\"]*)"/g, "require('./$1')").replace(/"/g, "'");
 
   await writeFile(_config?.output, response);
 
@@ -90,8 +90,7 @@ const App = async (pkgs, forceReset) => {
   console.log(`  import Assets from "${_config?.output}"`);
   console.log('  <Image source={Assets.imagename} />');
 
-  await execute("git add " + _config.output);
-
+  await execute('git add ' + _config.output);
 };
 
 program.option('-r, --reset', 'reset latest file.').parse(process.argv);
